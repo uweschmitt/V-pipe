@@ -2,22 +2,66 @@ rule write_summary_json:
     input:
         consensus = lambda wildcard: [f for f in all_files if f.endswith("ref_majority_dels.fasta")],
         dehumanized = lambda wildcard: [f for f in all_files if f.endswith("dehuman.cram")],
-        all_files = all_files
+        # qa_vals_csvs = lambda wildcard: [f for f in all_files if f.endswith("qa_vals.csv")],
+        all_files = all_files,
+        qa_vals_csv = "qa_vals.csv"
     output:
         "summary.zip",
+    params:
+        report_sequences_script=cachepath(
+            "../scripts/report_sequences.py", executable=True, localsource=True
+        ),
     conda:
         config.report_sequences["conda"]
     shell:
         # needed {CONDA_PREFIX} on my dev setup on Mac + pyenv:
         """
-        ${{CONDA_PREFIX}}/bin/python {VPIPE_BASEDIR}/scripts/report_sequences.py {input.consensus}
+        ${{CONDA_PREFIX}}/bin/python {params.report_sequences_script} {input.consensus}
+        """
+
+rule gatherqa:
+    params:
+        gatherqa_script=cachepath(
+            "../scripts/gatherqa", executable=True, localsource=True
+        ),
+    input:
+        "{dataset}/preprocessed_data/prinseq.err.log",
+        "{dataset}/alignments/REF_aln_stats.yaml",
+        "{dataset}/alignments/bwa_align.err.log",
+        "{dataset}/references/ref_majority_dels.matcher",
+        "{dataset}/extracted_data/R1_fastqc.html",
+        "{dataset}/extracted_data/R2_fastqc.html",
+    output:
+        qa_tsv = "{dataset}/extracted_data/qa.tsv",
+    shell:
+        """
+        dataset=$(dirname $(dirname {input[0]}))
+        echo $dataset
+        batch=$(basename $dataset)
+        subject=$(basename $(dirname $dataset))
+        bash {params.gatherqa_script} $subject $batch > {output.qa_tsv}
+        """
+
+rule qa_report:
+    params:
+        qa_report_script=cachepath(
+            "../scripts/qa_report.py", executable=True, localsource=True
+        ),
+    input:
+        qa_tsv = expand("{dataset}/extracted_data/qa.tsv", dataset=datasets),
+        coverage_tsv_gz=expand("{dataset}/alignments/coverage.tsv.gz", dataset=datasets)
+    output:
+        qa_vals_csv = "qa_vals.csv"
+    shell:
+        """
+        echo {input.qa_tsv}
+        echo {input.coverage_tsv_gz}
+        # touch {output.qa_vals_csv}
         """
 
 rule dehuman:
     input:
         global_ref=reference_file,
-        # R1=expand("{dataset}/preprocessed_data/R1.fastq.gz", dataset=datasets),
-        # R2=expand("{dataset}/preprocessed_data/R2.fastq.gz", dataset=datasets),
         R1="{dataset}/preprocessed_data/R1.fastq.gz",
         R2="{dataset}/preprocessed_data/R2.fastq.gz",
     output:

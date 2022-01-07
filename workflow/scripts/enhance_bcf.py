@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Amend genotype field to contain all variants."""
 
+
+
 import sys
+print(sys.executable)
+print(sys.path)
 
 from cyvcf2 import VCF, Writer
 

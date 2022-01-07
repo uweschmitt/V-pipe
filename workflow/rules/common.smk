@@ -365,6 +365,7 @@ visualizations = []
 datasets = []
 IDs = []
 dehumanized_raw_reads = []
+qa_tsvs = []
 
 for p in patient_list:
     # WARNING the following makes sure to gracefully handle trailing slashes in the user-provided paths in datadir
@@ -441,9 +442,11 @@ for p in patient_list:
     if config.output["dehumanized_raw_reads"]:
         dehumanized_raw_reads.append(os.path.join(sdir, "raw_data", "dehuman.cram"))
 
+    qa_tsvs.append(os.path.join(sdir, "extracted_data", "qa.tsv"))
+
     # merge lists containing expected output
     all_files = (alignments + consensus + results + visualizations
-                 + dehumanized_raw_reads)
+                 + dehumanized_raw_reads + qa_tsvs)
 
 IDs = ",".join(IDs)
 

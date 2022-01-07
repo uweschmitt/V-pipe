@@ -67,7 +67,7 @@ rule consensus_bcftools:
         > {output.fname_mask_lowcoverage}
 
         # preparations
-        {params.enhance_bcf} \
+        ${{CONDA_PREFIX}}/bin/python {params.enhance_bcf} \
            {output.fname_temp_bcf} \
            {output.fname_bcf} \
            {params.ambiguous_base_coverage_threshold}
